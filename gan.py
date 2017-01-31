@@ -94,7 +94,7 @@ class GAN():
 		for name, param in self.discriminator.namedparams():
 			with cuda.get_device(param.data):
 				xp = cuda.get_array_module(param.data)
-				xp.clip(param.data, -lower, upper)
+				param.data = xp.clip(param.data, -lower, upper)
 
 	def update_learning_rate(self, lr):
 		self.discriminator.update_learning_rate(lr)
@@ -155,12 +155,16 @@ class GAN():
 			return self.to_numpy(x_batch)
 		return x_batch
 
-	def discriminate(self, x_batch, test=False, apply_softmax=True):
+	def discriminate(self, x_batch, test=False):
 		x_batch = self.to_variable(x_batch)
-		prob, activations = self.discriminator(x_batch, test=test, return_activations=True)
-		if apply_softmax:
-			prob = F.softmax(prob)
-		return prob, activations
+		fw, activations = self.discriminator(x_batch, test=test, return_activations=True)
+		if fw.ndim == 4:
+			fw = F.sum(fw, axis=(1,2,3)) / (fw.shape[1] * fw.shape[2] * fw.shape[3])
+		elif fw.ndim == 2:
+			fw = F.sum(fw, axis=1) / fw.shape[1]
+		else:
+			raise Exception()
+		return fw, activations
 
 	def backprop_discriminator(self, loss):
 		self.discriminator.backprop(loss)

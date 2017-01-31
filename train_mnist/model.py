@@ -16,6 +16,11 @@ try:
 except:
 	pass
 
+# data
+image_width = 28
+image_height = image_width
+ndim_latent_code = 50
+
 # specify discriminator
 discriminator_sequence_filename = args.model_dir + "/discriminator.json"
 
@@ -28,16 +33,13 @@ if os.path.isfile(discriminator_sequence_filename):
 			raise Exception("could not load {}".format(discriminator_sequence_filename))
 else:
 	config = DiscriminatorParams()
-	config.ndim_input = 2
-	config.clamp_lower = 0.01
-	config.clamp_upper = 0.01	# clip to [-clamp_lower, clamp_upper]
-	config.num_critic = 5
+	config.ndim_input = image_width * image_height
 	config.weight_init_std = 0.02
 	config.weight_initializer = "Normal"
 	config.use_weightnorm = False
-	config.nonlinearity = "relu"
+	config.nonlinearity = "elu"
 	config.optimizer = "Adam"
-	config.learning_rate = 0.001
+	config.learning_rate = 0.0001
 	config.momentum = 0.5
 	config.gradient_clipping = 10
 	config.weight_decay = 0
@@ -45,12 +47,17 @@ else:
 	config.use_minibatch_discrimination = False
 
 	discriminator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
-	discriminator.add(Linear(None, 128, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Linear(None, 500, use_weightnorm=config.use_weightnorm))
+	# discriminator.add(gaussian_noise(std=0.5))
 	discriminator.add(Activation(config.nonlinearity))
-	# discriminator.add(BatchNormalization(128))
+	# discriminator.add(BatchNormalization(500))
+	discriminator.add(Linear(None, 250, use_weightnorm=config.use_weightnorm))
+	# discriminator.add(gaussian_noise(std=0.5))
+	discriminator.add(Activation(config.nonlinearity))
+	# discriminator.add(BatchNormalization(250))
 	if config.use_minibatch_discrimination:
 		discriminator.add(MinibatchDiscrimination(None, num_kernels=50, ndim_kernel=5))
-	discriminator.add(Linear(None, 128, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Linear(None, 20, use_weightnorm=config.use_weightnorm))
 
 	params = {
 		"config": config.to_dict(),
@@ -74,29 +81,32 @@ if os.path.isfile(generator_sequence_filename):
 			raise Exception("could not load {}".format(generator_sequence_filename))
 else:
 	config = GeneratorParams()
-	config.ndim_input = 256
-	config.ndim_output = 2
-	config.num_mixture = args.num_mixture
-	config.distribution_output = "universal"
+	config.ndim_input = ndim_latent_code
+	config.ndim_output = image_width * image_height
+	config.distribution_output = "tanh"
 	config.use_weightnorm = False
 	config.weight_init_std = 0.02
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
 	config.optimizer = "Adam"
-	config.learning_rate = 0.001
+	config.learning_rate = 0.0001
 	config.momentum = 0.5
 	config.gradient_clipping = 10
 	config.weight_decay = 0
 
 	# generator
 	generator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
-	generator.add(Linear(config.ndim_input, 128, use_weightnorm=config.use_weightnorm))
-	# generator.add(BatchNormalization(128))
+	generator.add(Linear(config.ndim_input, 500, use_weightnorm=config.use_weightnorm))
+	generator.add(BatchNormalization(500))
 	generator.add(Activation(config.nonlinearity))
-	generator.add(Linear(None, 128, use_weightnorm=config.use_weightnorm))
-	# generator.add(BatchNormalization(128))
+	generator.add(Linear(None, 500, use_weightnorm=config.use_weightnorm))
+	generator.add(BatchNormalization(500))
 	generator.add(Activation(config.nonlinearity))
 	generator.add(Linear(None, config.ndim_output, use_weightnorm=config.use_weightnorm))
+	if config.distribution_output == "sigmoid":
+		generator.add(Activation("sigmoid"))
+	if config.distribution_output == "tanh":
+		generator.add(Activation("tanh"))
 
 	params = {
 		"config": config.to_dict(),
