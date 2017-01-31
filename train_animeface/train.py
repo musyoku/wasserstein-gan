@@ -93,9 +93,8 @@ def main():
 
 			# update generator
 			gan.backprop_generator(loss_generator)
-
-			sum_loss_adversarial += float(loss_generator.data)
-			sum_dx_generated += float(dx_g.data)
+			sum_loss_generator += float(loss_generator.data)
+			
 			if t % 10 == 0:
 				progress.show(t, num_updates_per_epoch, {})
 
