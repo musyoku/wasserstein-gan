@@ -64,22 +64,22 @@ def main():
 
 				# sample data
 				x_true = sample_from_data(images, batchsize_true)
-				x_fake = gan.generate_x(batchsize_fake)
+				x_fake = gan.generate_x(batchsize_true)
 				x_fake.unchain_backward()
 
 				fw_u, activations_u = gan.discriminate(x_true)
 				fw_g, _ = gan.discriminate(x_fake)
 
-				loss_critic = -F.sum(fw_u - fw_g) / batchsize_u
+				loss_critic = -F.sum(fw_u - fw_g) / batchsize_true
 				sum_loss_critic += float(loss_critic.data) / discriminator_config.num_critic
 
 				# update discriminator
 				gan.backprop_discriminator(loss_critic)
 
 			# generator loss
-			x_fake = gan.generate_x(batchsize_g)
+			x_fake = gan.generate_x(batchsize_fake)
 			fw_g, activations_g = gan.discriminate(x_fake)
-			loss_generator = -F.sum(fw_g) / batchsize_g
+			loss_generator = -F.sum(fw_g) / batchsize_fake
 
 			# feature matching
 			if discriminator_config.use_feature_matching:
