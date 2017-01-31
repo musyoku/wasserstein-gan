@@ -50,7 +50,7 @@ else:
 	# discriminator.add(BatchNormalization(128))
 	if config.use_minibatch_discrimination:
 		discriminator.add(MinibatchDiscrimination(None, num_kernels=50, ndim_kernel=5))
-	discriminator.add(Linear(None, 1, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Linear(None, 128, use_weightnorm=config.use_weightnorm))
 
 	params = {
 		"config": config.to_dict(),
@@ -74,7 +74,7 @@ if os.path.isfile(generator_sequence_filename):
 			raise Exception("could not load {}".format(generator_sequence_filename))
 else:
 	config = GeneratorParams()
-	config.ndim_input = 256
+	config.ndim_input = 16
 	config.ndim_output = 2
 	config.num_mixture = args.num_mixture
 	config.distribution_output = "universal"
