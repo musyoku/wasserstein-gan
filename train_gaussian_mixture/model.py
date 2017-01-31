@@ -29,9 +29,11 @@ if os.path.isfile(discriminator_sequence_filename):
 else:
 	config = DiscriminatorParams()
 	config.ndim_input = 2
-	config.ndim_output = 1
-	config.weight_init_std = 0.8
-	config.weight_initializer = "HeNormal"
+	config.clamp_lower = 0.01
+	config.clamp_upper = 0.01	# clip to [-clamp_lower, clamp_upper]
+	config.num_critic = 5
+	config.weight_init_std = 0.02
+	config.weight_initializer = "Normal"
 	config.use_weightnorm = False
 	config.nonlinearity = "relu"
 	config.optimizer = "Adam"
@@ -48,9 +50,7 @@ else:
 	# discriminator.add(BatchNormalization(128))
 	if config.use_minibatch_discrimination:
 		discriminator.add(MinibatchDiscrimination(None, num_kernels=50, ndim_kernel=5))
-	discriminator.add(Linear(None, config.ndim_output, use_weightnorm=config.use_weightnorm))
-	# no need to add softmax() here
-	discriminator.build()
+	discriminator.add(Linear(None, 1, use_weightnorm=config.use_weightnorm))
 
 	params = {
 		"config": config.to_dict(),
@@ -79,8 +79,8 @@ else:
 	config.num_mixture = args.num_mixture
 	config.distribution_output = "universal"
 	config.use_weightnorm = False
-	config.weight_init_std = 0.8
-	config.weight_initializer = "HeNormal"
+	config.weight_init_std = 0.02
+	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
 	config.optimizer = "Adam"
 	config.learning_rate = 0.001
@@ -97,7 +97,6 @@ else:
 	# generator.add(BatchNormalization(128))
 	generator.add(Activation(config.nonlinearity))
 	generator.add(Linear(None, config.ndim_output, use_weightnorm=config.use_weightnorm))
-	generator.build()
 
 	params = {
 		"config": config.to_dict(),

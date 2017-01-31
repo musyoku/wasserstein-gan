@@ -36,7 +36,9 @@ class Sequential(sequential.Sequential):
 class DiscriminatorParams(Params):
 	def __init__(self):
 		self.ndim_input = 28 * 28
-		self.ndim_output = 1
+		self.clamp_lower = 0.01
+		self.clamp_upper = 0.01
+		self.num_critic = 5
 		self.weight_init_std = 1
 		self.weight_initializer = "Normal"		# Normal, GlorotNormal or HeNormal
 		self.nonlinearity = "elu"
@@ -86,21 +88,13 @@ class GAN():
 		config = self.config_discriminator
 		self.generator.setup_optimizers(config.optimizer, config.learning_rate, config.momentum)
 
-	def cache_discriminator_weights(self):
-		self.cached_weights = {}
-		xp = self.xp
-		optimizer = self.discriminator.optimizer
-		for name, param in optimizer.target.namedparams():
+	def clip_discriminator_weights(self):
+		lower = self.config_discriminator.clamp_lower
+		upper = self.config_discriminator.clamp_upper
+		for name, param in self.discriminator.namedparams():
 			with cuda.get_device(param.data):
-				self.cached_weights[name] = xp.copy(param.data)
-
-	def restore_discriminator_weights(self):
-		optimizer = self.discriminator.optimizer
-		for name, param in optimizer.target.namedparams():
-			with cuda.get_device(param.data):
-				if name not in self.cached_weights:
-					raise Exception()
-				param.data = self.cached_weights[name]
+				xp = cuda.get_array_module(param.data)
+				xp.clip(param.data, -lower, upper)
 
 	def update_learning_rate(self, lr):
 		self.discriminator.update_learning_rate(lr)
@@ -140,10 +134,6 @@ class GAN():
 	def get_batchsize(self, x):
 		return x.shape[0]
 
-	def zero_grads(self):
-		self.optimizer_discriminator.zero_grads()
-		self.optimizer_generative_model.zero_grads()
-
 	def sample_z(self, batchsize=1, gaussian=False):
 		config = self.config_generator
 		ndim_z = config.ndim_input
@@ -177,29 +167,6 @@ class GAN():
 
 	def backprop_generator(self, loss):
 		self.generator.backprop(loss)
-
-
-	def compute_kld(self, p, q):
-		return F.reshape(F.sum(p * (F.log(p + 1e-16) - F.log(q + 1e-16)), axis=1), (-1, 1))
-
-	def get_unit_vector(self, v):
-		v /= (np.sqrt(np.sum(v ** 2, axis=1)).reshape((-1, 1)) + 1e-16)
-		return v
-
-	def compute_lds(self, x, xi=10, eps=1, Ip=1):
-		x = self.to_variable(x)
-		y1, _ = self.discriminate(x, apply_softmax=True)
-		y1.unchain_backward()
-		d = self.to_variable(self.get_unit_vector(np.random.normal(size=x.shape).astype(np.float32)))
-		
-		for i in xrange(Ip):
-			y2, _ = self.discriminate(x + xi * d, apply_softmax=True)
-			kld = F.sum(self.compute_kld(y1, y2))
-			kld.backward()
-			d = self.to_variable(self.get_unit_vector(self.to_numpy(d.grad)))
-		
-		y2, _ = self.discriminate(x + eps * d, apply_softmax=True)
-		return -self.compute_kld(y1, y2)
 
 	def load(self, dir=None):
 		if dir is None:
