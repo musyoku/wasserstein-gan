@@ -67,8 +67,8 @@ def main():
 				x_fake = gan.generate_x(batchsize_fake)
 				x_fake.unchain_backward()
 
-				fw_u, activations_u = gan.discriminate(x_true / scale)
-				fw_g, _ = gan.discriminate(x_fake / scale)
+				fw_u, activations_u = gan.discriminate(x_true)
+				fw_g, _ = gan.discriminate(x_fake)
 
 				loss_critic = -F.sum(fw_u - fw_g) / batchsize_u
 				sum_loss_critic += float(loss_critic.data) / discriminator_config.num_critic
@@ -78,7 +78,7 @@ def main():
 
 			# generator loss
 			x_fake = gan.generate_x(batchsize_g)
-			fw_g, activations_g = gan.discriminate(samples_g / scale)
+			fw_g, activations_g = gan.discriminate(x_fake)
 			loss_generator = -F.sum(fw_g) / batchsize_g
 
 			# feature matching
