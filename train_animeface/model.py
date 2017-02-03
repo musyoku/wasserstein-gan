@@ -63,6 +63,7 @@ else:
 	if config.use_minibatch_discrimination:
 		discriminator.add(reshape_1d())
 		discriminator.add(MinibatchDiscrimination(None, num_kernels=50, ndim_kernel=5, train_weights=True))
+	discriminator.add(Convolution2D(256, 512, ksize=4, stride=2, pad=0, use_weightnorm=config.use_weightnorm))
 
 	params = {
 		"config": config.to_dict(),

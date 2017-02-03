@@ -54,13 +54,9 @@ else:
 	# discriminator.add(gaussian_noise(std=0.5))
 	discriminator.add(Activation(config.nonlinearity))
 	# discriminator.add(BatchNormalization(500))
-	discriminator.add(Linear(None, 500, use_weightnorm=config.use_weightnorm))
-	# discriminator.add(gaussian_noise(std=0.5))
-	discriminator.add(Activation(config.nonlinearity))
-	# discriminator.add(BatchNormalization(250))
 	if config.use_minibatch_discrimination:
 		discriminator.add(MinibatchDiscrimination(None, num_kernels=50, ndim_kernel=5))
-	discriminator.add(Linear(None, 100, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Linear(None, 500, use_weightnorm=config.use_weightnorm))
 
 	params = {
 		"config": config.to_dict(),
