@@ -29,17 +29,17 @@ if os.path.isfile(discriminator_sequence_filename):
 else:
 	config = DiscriminatorParams()
 	config.ndim_input = 2
-	config.clamp_lower = 0.01
-	config.clamp_upper = 0.01	# clip to [-clamp_lower, clamp_upper]
+	config.clamp_lower = -0.01
+	config.clamp_upper = 0.01
 	config.num_critic = 5
-	config.weight_init_std = 0.02
+	config.weight_init_std = 0.001
 	config.weight_initializer = "Normal"
 	config.use_weightnorm = False
-	config.nonlinearity = "relu"
-	config.optimizer = "Adam"
-	config.learning_rate = 0.001
+	config.nonlinearity = "leaky_relu"
+	config.optimizer = "rmsprop"
+	config.learning_rate = 0.0001
 	config.momentum = 0.5
-	config.gradient_clipping = 10
+	config.gradient_clipping = 1
 	config.weight_decay = 0
 	config.use_feature_matching = False
 	config.use_minibatch_discrimination = False
@@ -82,8 +82,8 @@ else:
 	config.weight_init_std = 0.02
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
-	config.optimizer = "Adam"
-	config.learning_rate = 0.001
+	config.optimizer = "adam"
+	config.learning_rate = 0.0001
 	config.momentum = 0.5
 	config.gradient_clipping = 10
 	config.weight_decay = 0

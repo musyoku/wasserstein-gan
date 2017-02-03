@@ -34,11 +34,14 @@ if os.path.isfile(discriminator_sequence_filename):
 else:
 	config = DiscriminatorParams()
 	config.ndim_input = image_width * image_height
-	config.weight_init_std = 0.02
+	config.clamp_lower = -0.01
+	config.clamp_upper = 0.01
+	config.num_critic = 5
+	config.weight_init_std = 0.001
 	config.weight_initializer = "Normal"
 	config.use_weightnorm = False
-	config.nonlinearity = "elu"
-	config.optimizer = "Adam"
+	config.nonlinearity = "leaky_relu"
+	config.optimizer = "rmsprop"
 	config.learning_rate = 0.0001
 	config.momentum = 0.5
 	config.gradient_clipping = 10
@@ -51,13 +54,13 @@ else:
 	# discriminator.add(gaussian_noise(std=0.5))
 	discriminator.add(Activation(config.nonlinearity))
 	# discriminator.add(BatchNormalization(500))
-	discriminator.add(Linear(None, 250, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Linear(None, 500, use_weightnorm=config.use_weightnorm))
 	# discriminator.add(gaussian_noise(std=0.5))
 	discriminator.add(Activation(config.nonlinearity))
 	# discriminator.add(BatchNormalization(250))
 	if config.use_minibatch_discrimination:
 		discriminator.add(MinibatchDiscrimination(None, num_kernels=50, ndim_kernel=5))
-	discriminator.add(Linear(None, 20, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Linear(None, 100, use_weightnorm=config.use_weightnorm))
 
 	params = {
 		"config": config.to_dict(),
@@ -85,7 +88,7 @@ else:
 	config.ndim_output = image_width * image_height
 	config.distribution_output = "tanh"
 	config.use_weightnorm = False
-	config.weight_init_std = 0.02
+	config.weight_init_std = 0.1
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
 	config.optimizer = "Adam"

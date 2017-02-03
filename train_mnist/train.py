@@ -19,7 +19,6 @@ def main():
 	generator_config = gan.config_generator
 
 	# settings
-	# _l -> labeled
 	# _u -> unlabeled
 	# _g -> generated
 	max_epoch = 1000
@@ -62,7 +61,7 @@ def main():
 				gan.backprop_discriminator(loss_critic)
 
 			# generator loss
-			images_g = gan.generate_x(batchsize_g, from_gaussian=True)
+			images_g = gan.generate_x(batchsize_g)
 			fw_g, activations_g = gan.discriminate(images_g)
 			loss_generator = -F.sum(fw_g) / batchsize_g
 
