@@ -34,11 +34,14 @@ if os.path.isfile(discriminator_sequence_filename):
 			raise Exception("could not load {}".format(discriminator_sequence_filename))
 else:
 	config = DiscriminatorParams()
-	config.weight_init_std = 0.02
+	config.clamp_lower = -0.01
+	config.clamp_upper = 0.01
+	config.num_critic = 1
+	config.weight_init_std = 0.001
 	config.weight_initializer = "Normal"
 	config.use_weightnorm = False
-	config.nonlinearity = "elu"
-	config.optimizer = "Adam"
+	config.nonlinearity = "leaky_relu"
+	config.optimizer = "rmsprop"
 	config.learning_rate = 0.0001
 	config.momentum = 0.5
 	config.gradient_clipping = 10
