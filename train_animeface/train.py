@@ -61,6 +61,7 @@ def main():
 			for k in xrange(discriminator_config.num_critic):
 				# clamp parameters to a cube
 				gan.clip_discriminator_weights()
+				# gan.decay_discriminator_weights()
 
 				# sample data
 				x_true = sample_from_data(images, batchsize_true)

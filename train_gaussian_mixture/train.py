@@ -51,7 +51,8 @@ def main():
 
 			for k in xrange(discriminator_config.num_critic):
 				# clamp parameters to a cube
-				gan.clip_discriminator_weights()
+				# gan.clip_discriminator_weights()
+				gan.decay_discriminator_weights()
 
 				# sample from data distribution
 				samples_u = sampler.gaussian_mixture_circle(batchsize_u, generator_config.num_mixture, scale=scale, std=0.2)

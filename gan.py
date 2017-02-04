@@ -94,15 +94,19 @@ class GAN():
 		for name, param in self.discriminator.namedparams():
 			with cuda.get_device(param.data):
 				xp = cuda.get_array_module(param.data)
-				# norm = xp.linalg.norm(param.data)
-				# if norm > 1:
-				# 	param.data /= norm
+				param.data = xp.clip(param.data, lower, upper)
+
+	def decay_discriminator_weights(self):
+		lower = self.config_discriminator.clamp_lower
+		upper = self.config_discriminator.clamp_upper
+		for name, param in self.discriminator.namedparams():
+			with cuda.get_device(param.data):
+				xp = cuda.get_array_module(param.data)
 				ratio_lower = xp.amin(param.data) / lower
 				ratio_upper = xp.amax(param.data) / upper
 				ratio = max(ratio_lower, ratio_upper)
 				if ratio > 1:
 					param.data /= ratio
-				# param.data = xp.clip(param.data, lower, upper)
 
 	def update_learning_rate(self, lr):
 		self.discriminator.update_learning_rate(lr)
