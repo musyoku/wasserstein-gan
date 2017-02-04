@@ -44,19 +44,19 @@ else:
 	config.optimizer = "rmsprop"
 	config.learning_rate = 0.0001
 	config.momentum = 0.5
-	config.gradient_clipping = 10
+	config.gradient_clipping = 1
 	config.weight_decay = 0
-	config.use_feature_matching = False
+	config.use_feature_matching = True
 	config.use_minibatch_discrimination = False
 
 	discriminator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
-	discriminator.add(Linear(None, 1000, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Linear(None, 500, use_weightnorm=config.use_weightnorm))
 	# discriminator.add(gaussian_noise(std=0.5))
 	discriminator.add(Activation(config.nonlinearity))
-	# discriminator.add(BatchNormalization(1000))
+	# discriminator.add(BatchNormalization(500))
 	if config.use_minibatch_discrimination:
 		discriminator.add(MinibatchDiscrimination(None, num_kernels=50, ndim_kernel=5))
-	discriminator.add(Linear(None, 1000, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Linear(None, 500, use_weightnorm=config.use_weightnorm))
 
 	params = {
 		"config": config.to_dict(),
@@ -95,11 +95,11 @@ else:
 
 	# generator
 	generator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
-	generator.add(Linear(config.ndim_input, 1000, use_weightnorm=config.use_weightnorm))
-	generator.add(BatchNormalization(1000))
+	generator.add(Linear(config.ndim_input, 500, use_weightnorm=config.use_weightnorm))
+	generator.add(BatchNormalization(500))
 	generator.add(Activation(config.nonlinearity))
-	generator.add(Linear(None, 1000, use_weightnorm=config.use_weightnorm))
-	generator.add(BatchNormalization(1000))
+	generator.add(Linear(None, 500, use_weightnorm=config.use_weightnorm))
+	generator.add(BatchNormalization(500))
 	generator.add(Activation(config.nonlinearity))
 	generator.add(Linear(None, config.ndim_output, use_weightnorm=config.use_weightnorm))
 	if config.distribution_output == "sigmoid":

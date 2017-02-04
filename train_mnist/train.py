@@ -19,13 +19,11 @@ def main():
 	generator_config = gan.config_generator
 
 	# settings
-	# _u -> unlabeled
-	# _g -> generated
 	max_epoch = 1000
 	num_updates_per_epoch = 500
 	plot_interval = 5
-	batchsize_u = 100
-	batchsize_g = batchsize_u
+	batchsize_true = 100
+	batchsize_fake = batchsize_true
 
 	# seed
 	np.random.seed(args.seed)
@@ -47,33 +45,33 @@ def main():
 				# gan.decay_discriminator_weights()
 
 				# sample true data from data distribution
-				images_u = dataset.sample_data(images, batchsize_u, binarize=False)
+				images_true = dataset.sample_data(images, batchsize_true, binarize=False)
 				# sample fake data from generator
-				images_g = gan.generate_x(batchsize_g)
-				images_g.unchain_backward()
+				images_fake = gan.generate_x(batchsize_fake)
+				images_fake.unchain_backward()
 
-				fw_u, activations_u = gan.discriminate(images_u)
-				fw_g, _ = gan.discriminate(images_g)
+				fw_true, activations_true = gan.discriminate(images_true)
+				fw_fake, _ = gan.discriminate(images_fake)
 
-				loss_critic = -F.sum(fw_u - fw_g) / batchsize_u
+				loss_critic = -F.sum(fw_true - fw_fake) / batchsize_true
 				sum_loss_critic += float(loss_critic.data) / discriminator_config.num_critic
 
 				# update discriminator
 				gan.backprop_discriminator(loss_critic)
 
 			# generator loss
-			images_g = gan.generate_x(batchsize_g)
-			fw_g, activations_g = gan.discriminate(images_g)
-			loss_generator = -F.sum(fw_g) / batchsize_g
+			images_fake = gan.generate_x(batchsize_fake)
+			fw_fake, activations_fake = gan.discriminate(images_fake)
+			loss_generator = -F.sum(fw_fake) / batchsize_fake
 
 			# feature matching
 			if discriminator_config.use_feature_matching:
-				features_true = activations_l[-1]
+				features_true = activations_true[-1]
 				features_true.unchain_backward()
-				if batchsize_l != batchsize_g:
-					images_g = gan.generate_x(batchsize_l)
-					_, activations_g = gan.discriminate(images_g, apply_softmax=False)
-				features_fake = activations_g[-1]
+				if batchsize_true != batchsize_fake:
+					images_fake = gan.generate_x(batchsize_true)
+					_, activations_fake = gan.discriminate(images_fake, apply_softmax=False)
+				features_fake = activations_fake[-1]
 				loss_generator += F.mean_squared_error(features_true, features_fake)
 
 			# update generator
