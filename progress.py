@@ -35,7 +35,10 @@ class Progress(object):
 		str = ""
 		for key, value in args.iteritems():
 			if isinstance(value, float):
-				str += " - {}: {:.3f}".format(key, value)
+				if abs(value) < 0.001:
+					str += " - {}: {:.3e}".format(key, value)
+				else:
+					str += " - {}: {:.3f}".format(key, value)
 			else:
 				str += " - {}: {}".format(key, value)
 		return str

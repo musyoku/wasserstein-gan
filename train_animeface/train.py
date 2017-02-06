@@ -9,6 +9,17 @@ from args import args
 from dataset import load_rgb_images
 from plot import plot
 
+def get_learning_rate_for_epoch(epoch):
+	if epoch < 50:
+		return 0.0001
+	if epoch < 100:
+		return 0.00005
+	if epoch < 150:
+		return 0.00001
+	if epoch < 200:
+		return 0.000005
+	return 0.000001
+
 def sample_from_data(images, batchsize):
 	example = images[0]
 	height = example.shape[1]
@@ -55,13 +66,15 @@ def main():
 		progress.start_epoch(epoch, max_epoch)
 		sum_loss_critic = 0
 		sum_loss_generator = 0
+		learning_rate = get_learning_rate_for_epoch(epoch)
+		gan.update_learning_rate(learning_rate)
 
 		for t in xrange(num_updates_per_epoch):
 
 			for k in xrange(discriminator_config.num_critic):
 				# clamp parameters to a cube
 				gan.clip_discriminator_weights()
-				# gan.decay_discriminator_weights()
+				# gan.scale_discriminator_weights()
 
 				# sample data
 				x_true = sample_from_data(images, batchsize_true)
@@ -104,6 +117,7 @@ def main():
 		progress.show(num_updates_per_epoch, num_updates_per_epoch, {
 			"wasserstein": -sum_loss_critic / num_updates_per_epoch,
 			"loss_g": sum_loss_generator / num_updates_per_epoch,
+			"lr": learning_rate
 		})
 
 		if epoch % plot_interval == 0 or epoch == 1:

@@ -46,7 +46,7 @@ else:
 	config.momentum = 0.5
 	config.gradient_clipping = 1
 	config.weight_decay = 0
-	config.use_feature_matching = True
+	config.use_feature_matching = False
 	config.use_minibatch_discrimination = False
 
 	discriminator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
@@ -87,7 +87,7 @@ else:
 	config.weight_init_std = 0.1
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
-	config.optimizer = "rmsprop"
+	config.optimizer = "adam"
 	config.learning_rate = 0.0001
 	config.momentum = 0.5
 	config.gradient_clipping = 10
