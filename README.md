@@ -1,6 +1,7 @@
 ## Wasserstein GAN
 
 - Code for the [paper](https://arxiv.org/abs/1701.07875)
+- [実装について](http://musyoku.github.io/2017/02/06/Wasserstein-GAN/)
 - See also:
 	- [Unrolled Generative Adversarial Networks](https://arxiv.org/abs/1611.02163)
 	- [Chainer implementation of Unrolled GAN](https://github.com/musyoku/unrolled-gan)
