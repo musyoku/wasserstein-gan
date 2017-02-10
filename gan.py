@@ -85,7 +85,7 @@ class GAN():
 	def build_generator(self):
 		self.generator = sequential.chain.Chain()
 		self.generator.add_sequence(sequential.from_dict(self.params_generator["model"]))
-		config = self.config_discriminator
+		config = self.config_generator
 		self.generator.setup_optimizers(config.optimizer, config.learning_rate, config.momentum)
 
 	def clip_discriminator_weights(self):
