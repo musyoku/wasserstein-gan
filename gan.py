@@ -39,7 +39,7 @@ class DiscriminatorParams(Params):
 		self.clamp_lower = -0.01
 		self.clamp_upper = 0.01
 		self.num_critic = 5
-		self.weight_init_std = 1
+		self.weight_std = 1
 		self.weight_initializer = "Normal"		# Normal, GlorotNormal or HeNormal
 		self.nonlinearity = "elu"
 		self.optimizer = "Adam"
@@ -55,7 +55,7 @@ class GeneratorParams(Params):
 		self.ndim_input = 10
 		self.ndim_output = 28 * 28
 		self.distribution_output = "universal"	# universal, sigmoid or tanh
-		self.weight_init_std = 1
+		self.weight_std = 1
 		self.weight_initializer = "Normal"		# Normal, GlorotNormal or HeNormal
 		self.nonlinearity = "relu"
 		self.optimizer = "Adam"
@@ -77,15 +77,15 @@ class GAN():
 		self._gpu = False
 
 	def build_discriminator(self):
-		self.discriminator = sequential.chain.Chain()
-		self.discriminator.add_sequence(sequential.from_dict(self.params_discriminator["model"]))
 		config = self.config_discriminator
+		self.discriminator = sequential.chain.Chain(weight_initializer=config.weight_initializer, weight_std=config.weight_std)
+		self.discriminator.add_sequence(sequential.from_dict(self.params_discriminator["model"]))
 		self.discriminator.setup_optimizers(config.optimizer, config.learning_rate, config.momentum)
 
 	def build_generator(self):
-		self.generator = sequential.chain.Chain()
-		self.generator.add_sequence(sequential.from_dict(self.params_generator["model"]))
 		config = self.config_generator
+		self.generator = sequential.chain.Chain(weight_initializer=config.weight_initializer, weight_std=config.weight_std)
+		self.generator.add_sequence(sequential.from_dict(self.params_generator["model"]))
 		self.generator.setup_optimizers(config.optimizer, config.learning_rate, config.momentum)
 
 	def clip_discriminator_weights(self):
@@ -170,12 +170,6 @@ class GAN():
 	def discriminate(self, x_batch, test=False):
 		x_batch = self.to_variable(x_batch)
 		fw, activations = self.discriminator(x_batch, test=test, return_activations=True)
-		if fw.ndim == 4:
-			fw = F.sum(fw, axis=(1,2,3)) / (fw.shape[1] * fw.shape[2] * fw.shape[3])
-		elif fw.ndim == 2:
-			fw = F.sum(fw, axis=1) / fw.shape[1]
-		else:
-			raise Exception()
 		return fw, activations
 
 	def backprop_discriminator(self, loss):

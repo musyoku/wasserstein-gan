@@ -37,7 +37,7 @@ else:
 	config.clamp_lower = -0.01
 	config.clamp_upper = 0.01
 	config.num_critic = 1
-	config.weight_init_std = 0.001
+	config.weight_std = 0.001
 	config.weight_initializer = "Normal"
 	config.use_weightnorm = False
 	config.nonlinearity = "leaky_relu"
@@ -49,7 +49,7 @@ else:
 	config.use_feature_matching = False
 	config.use_minibatch_discrimination = False
 
-	discriminator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	discriminator = Sequential()
 	discriminator.add(gaussian_noise(std=0.3))
 	discriminator.add(Convolution2D(3, 32, ksize=4, stride=2, pad=1, use_weightnorm=config.use_weightnorm))
 	discriminator.add(BatchNormalization(32))
@@ -93,7 +93,7 @@ else:
 	config.ndim_input = ndim_z
 	config.distribution_output = "tanh"
 	config.use_weightnorm = False
-	config.weight_init_std = 0.02
+	config.weight_std = 0.02
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
 	config.optimizer = "Adam"
@@ -103,12 +103,11 @@ else:
 	config.weight_decay = 0
 
 	# model
-	# compute projection width
-	input_size = get_in_size_of_deconv_layers(image_width, num_layers=4, ksize=4, stride=2)
+	input_size = 6
 	# compute required paddings
 	paddings = get_paddings_of_deconv_layers(image_width, num_layers=4, ksize=4, stride=2)
 
-	generator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	generator = Sequential()
 	generator.add(Linear(config.ndim_input, 512 * input_size ** 2, use_weightnorm=config.use_weightnorm))
 	generator.add(Activation(config.nonlinearity))
 	generator.add(BatchNormalization(512 * input_size ** 2))
@@ -119,7 +118,10 @@ else:
 	generator.add(Deconvolution2D(256, 128, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
 	generator.add(BatchNormalization(128))
 	generator.add(Activation(config.nonlinearity))
-	generator.add(Deconvolution2D(128, 3, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
+	generator.add(Deconvolution2D(128, 64, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
+	generator.add(BatchNormalization(64))
+	generator.add(Activation(config.nonlinearity))
+	generator.add(Deconvolution2D(64, 3, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
 	if config.distribution_output == "sigmoid":
 		generator.add(sigmoid())
 	if config.distribution_output == "tanh":

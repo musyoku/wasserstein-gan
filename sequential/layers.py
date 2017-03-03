@@ -6,6 +6,7 @@ import util
 from chainer import functions as F
 
 class Layer(object):
+	
 	def __call__(self, x):
 		raise NotImplementedError()
 

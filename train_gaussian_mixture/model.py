@@ -32,7 +32,7 @@ else:
 	config.clamp_lower = -0.01
 	config.clamp_upper = 0.01
 	config.num_critic = 5
-	config.weight_init_std = 0.001
+	config.weight_std = 0.001
 	config.weight_initializer = "Normal"
 	config.use_weightnorm = False
 	config.nonlinearity = "leaky_relu"
@@ -44,7 +44,7 @@ else:
 	config.use_feature_matching = False
 	config.use_minibatch_discrimination = False
 
-	discriminator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	discriminator = Sequential()
 	discriminator.add(Linear(None, 128, use_weightnorm=config.use_weightnorm))
 	discriminator.add(Activation(config.nonlinearity))
 	# discriminator.add(BatchNormalization(128))
@@ -79,7 +79,7 @@ else:
 	config.num_mixture = args.num_mixture
 	config.distribution_output = "universal"
 	config.use_weightnorm = False
-	config.weight_init_std = 0.02
+	config.weight_std = 0.02
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
 	config.optimizer = "adam"
@@ -89,7 +89,7 @@ else:
 	config.weight_decay = 0
 
 	# generator
-	generator = Sequential(weight_initializer=config.weight_initializer, weight_init_std=config.weight_init_std)
+	generator = Sequential()
 	generator.add(Linear(config.ndim_input, 128, use_weightnorm=config.use_weightnorm))
 	# generator.add(BatchNormalization(128))
 	generator.add(Activation(config.nonlinearity))
