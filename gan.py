@@ -6,7 +6,6 @@ from chainer import cuda, Variable, optimizers, serializers, function, optimizer
 from chainer.utils import type_check
 from chainer import functions as F
 from chainer import links as L
-from params import Params
 import sequential
 
 class Object(object):
@@ -18,20 +17,28 @@ def to_object(dict):
 		setattr(obj, key, value)
 	return obj
 
-class Sequential(sequential.Sequential):
+class Params():
+	def __init__(self, dict=None):
+		if dict:
+			self.from_dict(dict)
 
-	def __call__(self, x, test=False):
-		activations = []
-		for i, link in enumerate(self.links):
-			if isinstance(link, sequential.functions.dropout):
-				x = link(x, train=not test)
-			elif isinstance(link, chainer.links.BatchNormalization):
-				x = link(x, test=test)
+	def from_dict(self, dict):
+		for attr, value in dict.iteritems():
+			if hasattr(self, attr):
+				setattr(self, attr, value)
+
+	def to_dict(self):
+		dict = {}
+		for attr, value in self.__dict__.iteritems():
+			if hasattr(value, "to_dict"):
+				dict[attr] = value.to_dict()
 			else:
-				x = link(x)
-				if isinstance(link, sequential.functions.ActivationFunction):
-					activations.append(x)
-		return x, activations
+				dict[attr] = value
+		return dict
+
+	def dump(self):
+		for attr, value in self.__dict__.iteritems():
+			print "	{}: {}".format(attr, value)
 
 class DiscriminatorParams(Params):
 	def __init__(self):
@@ -47,8 +54,6 @@ class DiscriminatorParams(Params):
 		self.momentum = 0.5
 		self.gradient_clipping = 10
 		self.weight_decay = 0
-		self.use_feature_matching = False
-		self.use_minibatch_discrimination = False
 
 class GeneratorParams(Params):
 	def __init__(self):

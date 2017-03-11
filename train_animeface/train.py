@@ -95,16 +95,6 @@ def main():
 			fw_g, activations_g = gan.discriminate(x_fake)
 			loss_generator = -F.sum(fw_g) / batchsize_fake
 
-			# feature matching
-			if discriminator_config.use_feature_matching:
-				features_true = activations_u[-1]
-				features_true.unchain_backward()
-				if batchsize_true != batchsize_fake:
-					x_fake = gan.generate_x(batchsize_true)
-					_, activations_g = gan.discriminate(x_fake, apply_softmax=False)
-				features_fake = activations_g[-1]
-				loss_generator += F.mean_squared_error(features_true, features_fake)
-
 			# update generator
 			gan.backprop_generator(loss_generator)
 			sum_loss_generator += float(loss_generator.data)

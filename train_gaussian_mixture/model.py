@@ -4,11 +4,10 @@ import json, os, sys
 from args import args
 from chainer import cuda
 sys.path.append(os.path.split(os.getcwd())[0])
-from params import Params
 from gan import GAN, DiscriminatorParams, GeneratorParams
 from sequential import Sequential
-from sequential.layers import Linear, BatchNormalization, MinibatchDiscrimination
-from sequential.functions import Activation, dropout, gaussian_noise, softmax
+from sequential.layers import Linear, BatchNormalization
+from sequential.functions import Activation 
 
 # load params.json
 try:
@@ -41,15 +40,10 @@ else:
 	config.momentum = 0.5
 	config.gradient_clipping = 1
 	config.weight_decay = 0
-	config.use_feature_matching = False
-	config.use_minibatch_discrimination = False
 
 	discriminator = Sequential()
 	discriminator.add(Linear(None, 128, use_weightnorm=config.use_weightnorm))
 	discriminator.add(Activation(config.nonlinearity))
-	# discriminator.add(BatchNormalization(128))
-	if config.use_minibatch_discrimination:
-		discriminator.add(MinibatchDiscrimination(None, num_kernels=50, ndim_kernel=5))
 	discriminator.add(Linear(None, 128, use_weightnorm=config.use_weightnorm))
 
 	params = {
