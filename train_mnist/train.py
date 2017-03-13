@@ -45,7 +45,7 @@ def main():
 				# gan.decay_discriminator_weights()
 
 				# sample true data from data distribution
-				images_true = dataset.sample_data(images, batchsize_true, binarize=False)
+				images_true = dataset.sample_data(images, batchsize_true)
 				# sample fake data from generator
 				images_fake = gan.generate_x(batchsize_fake)
 				images_fake.unchain_backward()

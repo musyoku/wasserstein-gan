@@ -57,6 +57,28 @@ class Merge(object):
 			output += self.merge_layers[i](data)
 		return output
 		
+class PixelShuffler2D(object):
+	def __init__(self):
+		self.conv = None
+		self.r = 2
+
+	def __call__(self, x):
+		r = self.r
+		out = self.conv(x)
+		batchsize = out.shape[0]
+		in_channels = out.shape[1]
+		out_channels = in_channels / (r ** 2)
+		in_height = out.shape[2]
+		in_width = out.shape[3]
+		out_height = in_height * r
+		out_width = in_width * r
+		out = F.reshape(out, (batchsize, 1, r * r, out_channels * in_height * in_width, 1))
+		out = F.transpose(out, (0, 1, 3, 2, 4))
+		out = F.reshape(out, (batchsize, out_channels, in_height, in_width, r, r))
+		out = F.transpose(out, (0, 1, 2, 4, 3, 5))
+		out = F.reshape(out, (batchsize, out_channels, out_height, out_width))
+		return out
+		
 # class BatchRenormalization(link.Link):
 # 	def __init__(self, size, decay=0.9, eps=2e-5, rmax=1, dmax=0, dtype=numpy.float32, use_gamma=True, use_beta=True, initial_gamma=None, initial_beta=None, use_cudnn=True):
 # 		super(BatchNormalization, self).__init__(size, decay=decay, eps=eps, dtype=dtype, use_gamma=use_gamma, use_beta=use_beta, initial_gamma=initial_gamma, initial_beta=initial_beta, use_cudnn=use_cudnn)

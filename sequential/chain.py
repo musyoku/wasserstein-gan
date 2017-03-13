@@ -114,6 +114,8 @@ class Chain(chainer.Chain):
 			elif isinstance(link, links.Gaussian):
 				self.add_link("{}_{}_ln_var".format(name, i), link.layer_ln_var)
 				self.add_link("{}_{}_mean".format(name, i), link.layer_mean)
+			elif isinstance(link, links.PixelShuffler2D):
+				self.add_link("{}_{}".format(name, i), link.conv)
 			elif isinstance(link, links.MinibatchDiscrimination):
 				self.add_link("{}_{}".format(name, i), link.T)
 			elif isinstance(link, links.Merge):
