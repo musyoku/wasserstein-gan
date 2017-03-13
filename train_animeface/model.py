@@ -95,13 +95,12 @@ else:
 	config.gradient_clipping = 10
 	config.weight_decay = 0
 
-	input_size = 2
-	# compute required paddings
-	paddings = get_paddings_of_deconv_layers(image_width, num_layers=5, ksize=4, stride=2)
 
 	generator = Sequential()
 	
 	# Deconvolution version
+	input_size = 2
+	paddings = get_paddings_of_deconv_layers(image_width, num_layers=5, ksize=4, stride=2)
 	generator.add(Linear(config.ndim_input, 256 * input_size ** 2, use_weightnorm=config.use_weightnorm))
 	generator.add(Activation(config.nonlinearity))
 	generator.add(BatchNormalization(256 * input_size ** 2))
@@ -121,6 +120,7 @@ else:
 	generator.add(Deconvolution2D(32, 3, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
 
 	# PixelShuffler version
+	# input_size = 3
 	# generator.add(Linear(config.ndim_input, 256 * input_size ** 2, use_weightnorm=config.use_weightnorm))
 	# generator.add(Activation(config.nonlinearity))
 	# generator.add(BatchNormalization(256 * input_size ** 2))
