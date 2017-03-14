@@ -38,7 +38,6 @@ else:
 	config.num_critic = 1
 	config.weight_std = 0.001
 	config.weight_initializer = "Normal"
-	config.use_weightnorm = False
 	config.nonlinearity = "leaky_relu"
 	config.optimizer = "rmsprop"
 	config.learning_rate = 0.0001
@@ -47,19 +46,19 @@ else:
 	config.weight_decay = 0
 
 	discriminator = Sequential()
-	discriminator.add(Convolution2D(3, 32, ksize=4, stride=2, pad=1, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Convolution2D(3, 32, ksize=4, stride=2, pad=1))
 	discriminator.add(BatchNormalization(32))
 	discriminator.add(Activation(config.nonlinearity))
-	discriminator.add(Convolution2D(32, 64, ksize=4, stride=2, pad=1, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Convolution2D(32, 64, ksize=4, stride=2, pad=1))
 	discriminator.add(BatchNormalization(64))
 	discriminator.add(Activation(config.nonlinearity))
-	discriminator.add(Convolution2D(64, 128, ksize=4, stride=2, pad=1, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Convolution2D(64, 128, ksize=4, stride=2, pad=1))
 	discriminator.add(BatchNormalization(128))
 	discriminator.add(Activation(config.nonlinearity))
-	discriminator.add(Convolution2D(128, 256, ksize=4, stride=2, pad=1, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Convolution2D(128, 256, ksize=4, stride=2, pad=1))
 	discriminator.add(BatchNormalization(256))
 	discriminator.add(Activation(config.nonlinearity))
-	discriminator.add(Convolution2D(256, 512, ksize=4, stride=2, pad=0, use_weightnorm=config.use_weightnorm))
+	discriminator.add(Convolution2D(256, 512, ksize=4, stride=2, pad=0))
 
 	params = {
 		"config": config.to_dict(),
@@ -85,7 +84,6 @@ else:
 	config = GeneratorParams()
 	config.ndim_input = ndim_z
 	config.distribution_output = "tanh"
-	config.use_weightnorm = False
 	config.weight_std = 0.02
 	config.weight_initializer = "Normal"
 	config.nonlinearity = "relu"
@@ -95,30 +93,28 @@ else:
 	config.gradient_clipping = 10
 	config.weight_decay = 0
 
-
 	generator = Sequential()
+	input_size = 6
 	
 	# Deconvolution version
-	input_size = 6
 	paddings = get_paddings_of_deconv_layers(image_width, num_layers=4, ksize=4, stride=2)
-	generator.add(Linear(config.ndim_input, 256 * input_size ** 2, use_weightnorm=config.use_weightnorm))
+	generator.add(Linear(config.ndim_input, 256 * input_size ** 2))
 	generator.add(Activation(config.nonlinearity))
 	generator.add(BatchNormalization(256 * input_size ** 2))
 	generator.add(reshape((-1, 256, input_size, input_size)))
-	generator.add(Deconvolution2D(256, 128, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
+	generator.add(Deconvolution2D(256, 128, ksize=4, stride=2, pad=paddings.pop(0)))
 	generator.add(BatchNormalization(128))
 	generator.add(Activation(config.nonlinearity))
-	generator.add(Deconvolution2D(128, 64, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
+	generator.add(Deconvolution2D(128, 64, ksize=4, stride=2, pad=paddings.pop(0)))
 	generator.add(BatchNormalization(64))
 	generator.add(Activation(config.nonlinearity))
-	generator.add(Deconvolution2D(64, 32, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
+	generator.add(Deconvolution2D(64, 32, ksize=4, stride=2, pad=paddings.pop(0)))
 	generator.add(BatchNormalization(32))
 	generator.add(Activation(config.nonlinearity))
-	generator.add(Deconvolution2D(32, 3, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
+	generator.add(Deconvolution2D(32, 3, ksize=4, stride=2, pad=paddings.pop(0)))
 
 	# PixelShuffler version
-	# input_size = 6
-	# generator.add(Linear(config.ndim_input, 256 * input_size ** 2, use_weightnorm=config.use_weightnorm))
+	# generator.add(Linear(config.ndim_input, 256 * input_size ** 2))
 	# generator.add(Activation(config.nonlinearity))
 	# generator.add(BatchNormalization(256 * input_size ** 2))
 	# generator.add(reshape((-1, 256, input_size, input_size)))

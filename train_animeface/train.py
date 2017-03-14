@@ -50,16 +50,6 @@ def main():
 	if args.gpu_device != -1:
 		cuda.cupy.random.seed(args.seed)
 
-	# init weightnorm layers
-	if discriminator_config.use_weightnorm:
-		print "initializing weight normalization layers of the discriminator ..."
-		x_true = sample_from_data(images, batchsize_true)
-		gan.discriminate(x_true)
-
-	if generator_config.use_weightnorm:
-		print "initializing weight normalization layers of the generator ..."
-		gan.generate_x(batchsize_fake)
-
 	# training
 	progress = Progress()
 	for epoch in xrange(1, max_epoch + 1):
