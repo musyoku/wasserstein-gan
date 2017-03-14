@@ -99,15 +99,12 @@ else:
 	generator = Sequential()
 	
 	# Deconvolution version
-	input_size = 2
-	paddings = get_paddings_of_deconv_layers(image_width, num_layers=5, ksize=4, stride=2)
+	input_size = 6
+	paddings = get_paddings_of_deconv_layers(image_width, num_layers=4, ksize=4, stride=2)
 	generator.add(Linear(config.ndim_input, 256 * input_size ** 2, use_weightnorm=config.use_weightnorm))
 	generator.add(Activation(config.nonlinearity))
 	generator.add(BatchNormalization(256 * input_size ** 2))
 	generator.add(reshape((-1, 256, input_size, input_size)))
-	generator.add(Deconvolution2D(256, 256, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
-	generator.add(BatchNormalization(256))
-	generator.add(Activation(config.nonlinearity))
 	generator.add(Deconvolution2D(256, 128, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
 	generator.add(BatchNormalization(128))
 	generator.add(Activation(config.nonlinearity))
@@ -120,14 +117,11 @@ else:
 	generator.add(Deconvolution2D(32, 3, ksize=4, stride=2, pad=paddings.pop(0), use_weightnorm=config.use_weightnorm))
 
 	# PixelShuffler version
-	# input_size = 3
+	# input_size = 6
 	# generator.add(Linear(config.ndim_input, 256 * input_size ** 2, use_weightnorm=config.use_weightnorm))
 	# generator.add(Activation(config.nonlinearity))
 	# generator.add(BatchNormalization(256 * input_size ** 2))
 	# generator.add(reshape((-1, 256, input_size, input_size)))
-	# generator.add(PixelShuffler2D(256, 256, r=2))
-	# generator.add(BatchNormalization(256))
-	# generator.add(Activation(config.nonlinearity))
 	# generator.add(PixelShuffler2D(256, 128, r=2))
 	# generator.add(BatchNormalization(128))
 	# generator.add(Activation(config.nonlinearity))
