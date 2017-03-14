@@ -92,36 +92,6 @@ else:
 	config.momentum = 0.5
 	config.gradient_clipping = 10
 	config.weight_decay = 0
-	"model": discriminator.to_dict(),
-	}
-
-	with open(discriminator_sequence_filename, "w") as f:
-		json.dump(params, f, indent=4, sort_keys=True, separators=(',', ': '))
-
-discriminator_params = params
-
-# specify generator
-generator_sequence_filename = args.model_dir + "/generator.json"
-
-if os.path.isfile(generator_sequence_filename):
-	print "loading", generator_sequence_filename
-	with open(generator_sequence_filename, "r") as f:
-		try:
-			params = json.load(f)
-		except:
-			raise Exception("could not load {}".format(generator_sequence_filename))
-else:
-	config = GeneratorParams()
-	config.ndim_input = ndim_z
-	config.distribution_output = "tanh"
-	config.weight_std = 0.02
-	config.weight_initializer = "Normal"
-	config.nonlinearity = "relu"
-	config.optimizer = "Adam"
-	config.learning_rate = 0.0001
-	config.momentum = 0.5
-	config.gradient_clipping = 10
-	config.weight_decay = 0
 
 	generator = Sequential()
 	projection_size = 6
