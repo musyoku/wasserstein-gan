@@ -41,16 +41,14 @@ class Layer(object):
 			print "	{}: {}".format(attr, value)
 
 class Convolution2D(Layer):
-	def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0, bias=0, nobias=False, use_cudnn=True, use_weightnorm=False):
+	def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0, nobias=False, use_weightnorm=False):
 		self._layer = "Convolution2D"
 		self.in_channels = in_channels
 		self.out_channels = out_channels
 		self.ksize = ksize
 		self.stride = stride
 		self.pad = pad
-		self.bias = bias
 		self.nobias = nobias
-		self.use_cudnn = use_cudnn
 		self.use_weightnorm = use_weightnorm
 
 	def to_link(self):
@@ -66,17 +64,15 @@ class Convolution2D(Layer):
 		return chainer.links.Convolution2D(**args)
 
 class Deconvolution2D(Layer):
-	def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0, bias=0, nobias=False, outsize=None, use_cudnn=True, use_weightnorm=False):
+	def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0, nobias=False, outsize=None, use_weightnorm=False):
 		self._layer = "Deconvolution2D"
 		self.in_channels = in_channels
 		self.out_channels = out_channels
 		self.ksize = ksize
 		self.stride = stride
 		self.pad = pad
-		self.bias = bias
 		self.nobias = nobias
 		self.outsize = outsize
-		self.use_cudnn = use_cudnn
 		self.use_weightnorm = use_weightnorm
 
 	def to_link(self):
@@ -91,7 +87,7 @@ class Deconvolution2D(Layer):
 		return chainer.links.Deconvolution2D(**args)
 
 class DilatedConvolution2D(Layer):
-	def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0, dilate=1, bias=0, nobias=False, use_cudnn=True):
+	def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0, dilate=1, nobias=False):
 		self._layer = "DilatedConvolution2D"
 		self.in_channels = in_channels
 		self.out_channels = out_channels
@@ -99,9 +95,7 @@ class DilatedConvolution2D(Layer):
 		self.stride = stride
 		self.pad = pad
 		self.dilate = dilate
-		self.bias = bias
 		self.nobias = nobias
-		self.use_cudnn = use_cudnn
 
 	def to_link(self):
 		args = self.to_chainer_args()
@@ -110,7 +104,7 @@ class DilatedConvolution2D(Layer):
 		return chainer.links.DilatedConvolution2D(**args)
 
 class PixelShuffler2D(Layer):
-	def __init__(self, in_channels, out_channels, ksize=3, r=2, pad=1, bias=0, nobias=False, use_cudnn=True):
+	def __init__(self, in_channels, out_channels, ksize=3, r=2, pad=1, nobias=False):
 		assert in_channels % (r ** 2) == 0
 		self._layer = "PixelShuffler2D"
 		self.in_channels = in_channels
@@ -118,9 +112,7 @@ class PixelShuffler2D(Layer):
 		self.ksize = ksize
 		self.r = r
 		self.pad = pad
-		self.bias = bias
 		self.nobias = nobias
-		self.use_cudnn = use_cudnn
 
 	def to_link(self):
 		link = links.PixelShuffler2D()
@@ -162,11 +154,10 @@ class GRU(Layer):
 		return chainer.links.GRU(**args)
 
 class Linear(Layer):
-	def __init__(self, in_size, out_size, bias=0, nobias=False, use_weightnorm=False):
+	def __init__(self, in_size, out_size, nobias=False, use_weightnorm=False):
 		self._layer = "Linear"
 		self.in_size = in_size
 		self.out_size = out_size
-		self.bias = bias
 		self.nobias = nobias
 		self.use_weightnorm = use_weightnorm
 
@@ -182,11 +173,10 @@ class Linear(Layer):
 		return chainer.links.Linear(**args)
 
 class Merge(Layer):
-	def __init__(self, num_inputs, out_size, bias=0, nobias=False, use_weightnorm=False):
+	def __init__(self, num_inputs, out_size, nobias=False, use_weightnorm=False):
 		self._layer = "Merge"
 		self.num_inputs = num_inputs
 		self.out_size = out_size
-		self.bias = bias
 		self.nobias = nobias
 		self.use_weightnorm = use_weightnorm
 
@@ -208,11 +198,10 @@ class Merge(Layer):
 		return link
 
 class Gaussian(Layer):
-	def __init__(self, in_size, out_size, bias=0, nobias=False, use_weightnorm=False):
+	def __init__(self, in_size, out_size, nobias=False, use_weightnorm=False):
 		self._layer = "Gaussian"
 		self.in_size = in_size
 		self.out_size = out_size
-		self.bias = bias
 		self.nobias = nobias
 		self.use_weightnorm = use_weightnorm
 
@@ -294,7 +283,7 @@ class StatefulPeepholeLSTM(Layer):
 		return chainer.links.StatefulPeepholeLSTM(**args)
 
 class BatchNormalization(Layer):
-	def __init__(self, size, decay=0.9, eps=2e-05, dtype="float32", use_gamma=True, use_beta=True, use_cudnn=True):
+	def __init__(self, size, decay=0.9, eps=2e-05, dtype="float32", use_gamma=True, use_beta=True):
 		self._layer = "BatchNormalization"
 		self.size = size
 		self.decay = decay
@@ -302,7 +291,6 @@ class BatchNormalization(Layer):
 		self.dtype = dtype
 		self.use_gamma = use_gamma
 		self.use_beta = use_beta
-		self.use_cudnn = use_cudnn
 
 	def to_link(self):
 		args = self.to_chainer_args()

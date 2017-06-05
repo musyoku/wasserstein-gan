@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-import math
-import json, os, sys
+import json, os, sys, chainer, math
 from args import args
 from chainer import cuda
 sys.path.append(os.path.split(os.getcwd())[0])
-from gan import GAN, DiscriminatorParams, GeneratorParams
+from gan import GAN, DiscriminatorParams, GeneratorParams, to_object
 from sequential import Sequential
 from sequential.layers import Linear, BatchNormalization
 from sequential.functions import Activation
@@ -28,6 +26,7 @@ if os.path.isfile(discriminator_sequence_filename):
 	with open(discriminator_sequence_filename, "r") as f:
 		try:
 			params = json.load(f)
+			chainer.global_config.discriminator = to_object(params["config"])
 		except Exception as e:
 			raise Exception("could not load {}".format(discriminator_sequence_filename))
 else:
@@ -44,6 +43,8 @@ else:
 	config.momentum = 0.5
 	config.gradient_clipping = 1
 	config.weight_decay = 0
+
+	chainer.global_config.discriminator = config
 
 	discriminator = Sequential()
 	discriminator.add(Linear(None, 500))
@@ -68,6 +69,7 @@ if os.path.isfile(generator_sequence_filename):
 	with open(generator_sequence_filename, "r") as f:
 		try:
 			params = json.load(f)
+			chainer.global_config.generator = to_object(params["config"])
 		except:
 			raise Exception("could not load {}".format(generator_sequence_filename))
 else:
@@ -83,6 +85,8 @@ else:
 	config.momentum = 0.5
 	config.gradient_clipping = 10
 	config.weight_decay = 0
+
+	chainer.global_config.generator = config
 
 	# generator
 	generator = Sequential()

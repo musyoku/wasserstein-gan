@@ -2,8 +2,8 @@
 import math
 import numpy as np
 from six import moves
-from chainer import cuda, Variable, initializers, link, function
-from chainer.utils import conv, type_check
+from chainer import cuda, Variable, initializers, link, function, variable
+from chainer.utils import conv, type_check, argument
 from chainer.functions.connection import deconvolution_2d, convolution_2d
 
 if cuda.cudnn_enabled:
@@ -19,7 +19,7 @@ if cuda.cudnn_enabled:
 
 _check_cudnn_acceptable_type = convolution_2d._check_cudnn_acceptable_type
 
-def get_norm(W):
+def _norm(W):
 	xp = cuda.get_array_module(W)
 	norm = xp.sqrt(xp.sum(W ** 2, axis=(0, 2, 3))) + 1e-9
 	norm = norm.reshape((1, -1, 1, 1))
@@ -66,7 +66,7 @@ class Deconvolution2DFunction(deconvolution_2d.Deconvolution2DFunction):
 				conv.get_conv_outsize(self.outw, v_type.shape[3], self.sx, self.pw),
 			)
 
-		if n_in.eval() == 4:
+		if type_check.eval(n_in) == 4:
 			b_type = in_types[3]
 			type_check.expect(
 				b_type.dtype == x_type.dtype,
@@ -78,9 +78,9 @@ class Deconvolution2DFunction(deconvolution_2d.Deconvolution2DFunction):
 		x, V, g = inputs[:3]
 		b = inputs[3] if len(inputs) == 4 else None
 		
-		self.normV = get_norm(V)
-		self.normalizedV = V / self.normV
-		self.W = g * self.normalizedV
+		self.norm = _norm(V)
+		self.V_normalized = V / self.norm
+		self.W = g * self.V_normalized
 
 		if b is None:
 			return super(Deconvolution2DFunction, self).forward_cpu((x, self.W))
@@ -90,9 +90,9 @@ class Deconvolution2DFunction(deconvolution_2d.Deconvolution2DFunction):
 		x, V, g = inputs[:3]
 		b = inputs[3] if len(inputs) == 4 else None
 
-		self.normV = get_norm(V)
-		self.normalizedV = V / self.normV
-		self.W = g * self.normalizedV
+		self.norm = _norm(V)
+		self.V_normalized = V / self.norm
+		self.W = g * self.V_normalized
 		
 		if b is None:
 			return super(Deconvolution2DFunction, self).forward_gpu((x, self.W))
@@ -108,8 +108,8 @@ class Deconvolution2DFunction(deconvolution_2d.Deconvolution2DFunction):
 			gx, gW, gb = super(Deconvolution2DFunction, self).backward_cpu((x, self.W, b), grad_outputs)
 
 		xp = cuda.get_array_module(x)
-		gg = xp.sum(gW * self.normalizedV, axis=(0, 2, 3), keepdims=True).astype(g.dtype, copy=False)
-		gV = g * (gW - gg * self.normalizedV) / self.normV
+		gg = xp.sum(gW * self.V_normalized, axis=(0, 2, 3), keepdims=True).astype(g.dtype, copy=False)
+		gV = g * (gW - gg * self.V_normalized) / self.norm
 		gV = gV.astype(V.dtype, copy=False)
 
 		if b is None:
@@ -127,8 +127,8 @@ class Deconvolution2DFunction(deconvolution_2d.Deconvolution2DFunction):
 			gx, gW, gb = super(Deconvolution2DFunction, self).backward_gpu((x, self.W, b), grad_outputs)
 
 		xp = cuda.get_array_module(x)
-		gg = xp.sum(gW * self.normalizedV, axis=(0, 2, 3), keepdims=True).astype(g.dtype, copy=False)
-		gV = g * (gW - gg * self.normalizedV) / self.normV
+		gg = xp.sum(gW * self.V_normalized, axis=(0, 2, 3), keepdims=True).astype(g.dtype, copy=False)
+		gV = g * (gW - gg * self.V_normalized) / self.norm
 		gV = gV.astype(V.dtype, copy=False)
 
 		if b is None:
@@ -137,8 +137,15 @@ class Deconvolution2DFunction(deconvolution_2d.Deconvolution2DFunction):
 			return gx, gV, gg, gb
 
 
-def deconvolution_2d(x, V, g, b=None, stride=1, pad=0, outsize=None, use_cudnn=True):
-	func = Deconvolution2DFunction(stride, pad, outsize, use_cudnn)
+def deconvolution_2d(x, V, g, b=None, stride=1, pad=0, outsize=None, **kwargs):
+	argument.check_unexpected_kwargs(
+		kwargs, deterministic="deterministic argument is not "
+		"supported anymore. "
+		"Use chainer.using_config('cudnn_deterministic', value) "
+		"context where value is either `True` or `False`.")
+	argument.assert_kwargs_empty(kwargs)
+
+	func = Deconvolution2DFunction(stride, pad, outsize)
 	if b is None:
 		return func(x, V, g)
 	else:
@@ -146,31 +153,38 @@ def deconvolution_2d(x, V, g, b=None, stride=1, pad=0, outsize=None, use_cudnn=T
 
 class Deconvolution2D(link.Link):
 
-	def __init__(self, in_channels, out_channels, ksize, stride=1, pad=0,
-				 wscale=1, bias=0, nobias=False, outsize=None, use_cudnn=True,
-				 initialV=None, dtype=np.float32):
-		kh, kw = _pair(ksize)
+	def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0,
+				 nobias=False, outsize=None, initialV=None, 
+				 **kwargs):
+		super(Deconvolution2D, self).__init__()
+
+		argument.check_unexpected_kwargs(
+			kwargs, deterministic="deterministic argument is not "
+			"supported anymore. "
+			"Use chainer.using_config('cudnn_deterministic', value) "
+			"context where value is either `True` or `False`.")
+		argument.assert_kwargs_empty(kwargs)
+
+		if ksize is None:
+			out_channels, ksize, in_channels = in_channels, out_channels, None
+
+		self.ksize = ksize
 		self.stride = _pair(stride)
 		self.pad = _pair(pad)
 		self.outsize = (None, None) if outsize is None else outsize
-		self.use_cudnn = use_cudnn
-		self.dtype = dtype
-		self.nobias = nobias
 		self.out_channels = out_channels
-		self.in_channels = in_channels
+		self.nobias = nobias
 
-		V_shape = (in_channels, out_channels, kh, kw)
-		super(Deconvolution2D, self).__init__(V=V_shape)
+		with self.init_scope():
+			V_initializer = initializers._get_initializer(initialV)
+			self.V = variable.Parameter(V_initializer)
+			if in_channels is not None:
+				kh, kw = _pair(self.ksize)
+				V_shape = (in_channels, self.out_channels, kh, kw)
+				self.V.initialize(V_shape)
 
-		if isinstance(initialV, (np.ndarray, cuda.ndarray)):
-			assert initialV.shape == (in_channels, out_channels, kh, kw)
-		initializers.init_weight(self.V.data, initialV, scale=math.sqrt(wscale))
-
-		if nobias:
-			self.b = None
-		else:
-			self.add_uninitialized_param("b")
-		self.add_uninitialized_param("g")
+			self.b = None if nobias else variable.Parameter(None)
+			self.g = variable.Parameter(None)	
 
 	def _initialize_params(self, t):
 		xp = cuda.get_array_module(t)
@@ -182,25 +196,20 @@ class Deconvolution2D(link.Link):
 
 		# print "g <- {}, b <- {}".format(g.reshape((-1,)), b.reshape((-1,)))
 
-		if self.nobias == False:
-			self.add_param("b", self.out_channels, initializer=initializers.Constant(b.reshape((-1, )), self.dtype))
-		self.add_param("g", (1, self.out_channels, 1, 1), initializer=initializers.Constant(g, self.dtype))
-
-	def _get_W_data(self):
-		V = self.V.data
-		xp = cuda.get_array_module(V)
-		norm = xp.linalg.norm(V)
-		V = V / norm
-		return self.g.data * V
+		with self.init_scope():
+			if self.nobias == False:
+				self.b = variable.Parameter(b.reshape((-1,)))
+			self.g = variable.Parameter(g.reshape((1, self.out_channels, 1, 1)))
 
 	def __call__(self, x):
-
-		if hasattr(self, "b") == False or hasattr(self, "g") == False:
+		if self.g.data is None:
+			if self.V.data is None:
+				kh, kw = _pair(self.ksize)
+				V_shape = (x.shape[1], self.out_channels, kh, kw)
+				self.V.initialize(V_shape)
 			xp = cuda.get_array_module(x.data)
-			t = deconvolution_2d(x, self.V, Variable(xp.full((1, self.out_channels, 1, 1), 1.0).astype(x.dtype)), None, self.stride, self.pad, self.outsize, self.use_cudnn)	# compute output with g = 1 and without bias
+			t = deconvolution_2d(x, self.V, Variable(xp.full((1, self.out_channels, 1, 1), 1.0).astype(x.dtype)), None, self.stride, self.pad, self.outsize)	# compute output with g = 1 and without bias
 			self._initialize_params(t.data)
 			return (t - self.mean_t) / self.std_t
 
-		return deconvolution_2d(
-			x, self.V, self.g, self.b, self.stride, self.pad,
-			self.outsize, self.use_cudnn)
+		return deconvolution_2d(x, self.V, self.g, self.b, self.stride, self.pad, self.outsize)

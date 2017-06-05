@@ -97,15 +97,17 @@ class Chain(chainer.Chain):
 	def add_sequence(self, sequence, name=None):
 		assert isinstance(sequence, sequential.Sequential)
 		self.build_sequence(sequence)
-		self.add_sequence_with_name(sequence, name)
 		if name is None:
+			name = "link"
 			assert hasattr(self, "sequence") == False
 			self.sequence = sequence
 		else:
 			assert hasattr(self, name) == False
 			setattr(self, name, sequence)
+		self.add_sequence_with_name(sequence, name)
 
 	def add_sequence_with_name(self, sequence, name="link"):
+		assert name is not None
 		assert isinstance(sequence, sequential.Sequential)
 		self.build_sequence(sequence)
 		for i, link in enumerate(sequence.links):

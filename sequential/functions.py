@@ -88,12 +88,11 @@ class leaky_relu(ActivationFunction):
 		return F.leaky_relu(x, self.slope)
 
 class log_softmax(Function):
-	def __init__(self, use_cudnn=True):
+	def __init__(self):
 		self._function = "log_softmax"
-		self.use_cudnn = use_cudnn
 
 	def __call__(self, x):
-		return F.log_softmax(x, self.use_cudnn)
+		return F.log_softmax(x)
 
 class maxout(Function):
 	def __init__(self, pool_size, axis=1):
@@ -105,44 +104,39 @@ class maxout(Function):
 		return F.maxout(x, self.pool_size, self.axis)
 
 class relu(ActivationFunction):
-	def __init__(self, use_cudnn=True):
+	def __init__(self):
 		self._function = "relu"
-		self.use_cudnn = use_cudnn
 
 	def __call__(self, x):
-		return F.relu(x, self.use_cudnn)
+		return F.relu(x)
 
 class sigmoid(ActivationFunction):
-	def __init__(self, use_cudnn=True):
+	def __init__(self):
 		self._function = "sigmoid"
-		self.use_cudnn = use_cudnn
 
 	def __call__(self, x):
-		return F.sigmoid(x, self.use_cudnn)
+		return F.sigmoid(x)
 
 class softmax(Function):
-	def __init__(self, use_cudnn=True):
+	def __init__(self):
 		self._function = "softmax"
-		self.use_cudnn = use_cudnn
 		pass
 	def __call__(self, x):
-		return F.softmax(x, self.use_cudnn)
+		return F.softmax(x)
 
 class softplus(ActivationFunction):
-	def __init__(self, use_cudnn=True):
+	def __init__(self):
 		self._function = "softplus"
-		self.use_cudnn = use_cudnn
 
 	def __call__(self, x):
-		return F.softplus(x, self.use_cudnn)
+		return F.softplus(x)
 
 class tanh(ActivationFunction):
-	def __init__(self, use_cudnn=True):
+	def __init__(self):
 		self._function = "tanh"
-		self.use_cudnn = use_cudnn
 
 	def __call__(self, x):
-		return F.tanh(x, self.use_cudnn)
+		return F.tanh(x)
 
 class dropout(Function):
 	def __init__(self, ratio=0.5):
@@ -166,37 +160,34 @@ class gaussian_noise(Function):
 		return x + noise
 
 class average_pooling_2d(Function):
-	def __init__(self, ksize, stride=None, pad=0, use_cudnn=True):
+	def __init__(self, ksize, stride=None, pad=0):
 		self._function = "average_pooling_2d"
 		self.ksize = ksize
 		self.stride = stride
 		self.pad = pad
-		self.use_cudnn = use_cudnn
 
 	def __call__(self, x):
-		return F.average_pooling_2d(x, self.ksize, self.stride, self.pad, self.use_cudnn)
+		return F.average_pooling_2d(x, self.ksize, self.stride, self.pad)
 
 class max_pooling_2d(Function):
-	def __init__(self, ksize, stride=None, pad=0, cover_all=True, use_cudnn=True):
+	def __init__(self, ksize, stride=None, pad=0, cover_all=True):
 		self._function = "max_pooling_2d"
 		self.ksize = ksize
 		self.stride = stride
 		self.pad = pad
 		self.cover_all = cover_all
-		self.use_cudnn = use_cudnn
 
 	def __call__(self, x):
-		return F.max_pooling_2d(x, self.ksize, self.stride, self.pad, self.cover_all, self.use_cudnn)
+		return F.max_pooling_2d(x, self.ksize, self.stride, self.pad, self.cover_all)
 
 class spatial_pyramid_pooling_2d(Function):
-	def __init__(self, pyramid_height, pooling_class, use_cudnn=True):
+	def __init__(self, pyramid_height, pooling_class):
 		self._function = "spatial_pyramid_pooling_2d"
 		self.pyramid_height = pyramid_height
 		self.pooling_class = pooling_class
-		self.use_cudnn = use_cudnn
 
 	def __call__(self, x):
-		return F.spatial_pyramid_pooling_2d(x, self.pyramid_height, self.pooling_class, self.use_cudnn)
+		return F.spatial_pyramid_pooling_2d(x, self.pyramid_height, self.pooling_class)
 
 class unpooling_2d(Function):
 	def __init__(self, ksize, stride=None, pad=0, outsize=None, cover_all=True):

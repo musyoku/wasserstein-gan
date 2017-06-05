@@ -2,8 +2,8 @@
 import math
 import numpy as np
 from six import moves
-from chainer import cuda, Variable, initializers, link, function
-from chainer.utils import conv, type_check
+from chainer import cuda, variable, initializers, link, function, Variable
+from chainer.utils import conv, type_check, argument
 from chainer.functions.connection import convolution_2d
 
 if cuda.cudnn_enabled:
@@ -11,21 +11,22 @@ if cuda.cudnn_enabled:
 	libcudnn = cuda.cudnn.cudnn
 	_cudnn_version = libcudnn.getVersion()
 	_fwd_pref = libcudnn.CUDNN_CONVOLUTION_FWD_SPECIFY_WORKSPACE_LIMIT
-	if _cudnn_version >= 4000:
+	if _cudnn_version >= 3000:
 		_bwd_filter_pref = \
 			libcudnn.CUDNN_CONVOLUTION_BWD_FILTER_SPECIFY_WORKSPACE_LIMIT
 		_bwd_data_pref = \
 			libcudnn.CUDNN_CONVOLUTION_BWD_DATA_SPECIFY_WORKSPACE_LIMIT
 
-def get_norm(W):
+
+def _check_cudnn_acceptable_type(x_dtype, W_dtype):
+	return x_dtype == W_dtype and (
+		_cudnn_version >= 3000 or x_dtype != numpy.float16)
+
+def _norm(W):
 	xp = cuda.get_array_module(W)
 	norm = xp.sqrt(xp.sum(W ** 2, axis=(1, 2, 3))) + 1e-9
 	norm = norm.reshape((-1, 1, 1, 1))
 	return norm
-
-def _check_cudnn_acceptable_type(x_dtype, W_dtype):
-	return x_dtype == W_dtype and (
-		_cudnn_version >= 3000 or x_dtype != np.float16)
 
 def _pair(x):
 	if hasattr(x, "__getitem__"):
@@ -50,7 +51,7 @@ class Convolution2DFunction(convolution_2d.Convolution2DFunction):
 			x_type.shape[1] == v_type.shape[1],
 		)
 
-		if n_in.eval() == 4:
+		if type_check.eval(n_in) == 4:
 			b_type = in_types[3]
 			type_check.expect(
 				b_type.dtype == x_type.dtype,
@@ -62,9 +63,9 @@ class Convolution2DFunction(convolution_2d.Convolution2DFunction):
 		x, V, g = inputs[:3]
 		b = inputs[3] if len(inputs) == 4 else None
 		
-		self.normV = get_norm(V)
-		self.normalizedV = V / self.normV
-		self.W = g * self.normalizedV
+		self.norm = _norm(V)
+		self.V_normalized = V / self.norm
+		self.W = g * self.V_normalized
 
 		if b is None:
 			return super(Convolution2DFunction, self).forward_cpu((x, self.W))
@@ -74,9 +75,9 @@ class Convolution2DFunction(convolution_2d.Convolution2DFunction):
 		x, V, g = inputs[:3]
 		b = inputs[3] if len(inputs) == 4 else None
 
-		self.normV = get_norm(V)
-		self.normalizedV = V / self.normV
-		self.W = g * self.normalizedV
+		self.norm = _norm(V)
+		self.V_normalized = V / self.norm
+		self.W = g * self.V_normalized
 
 		if b is None:
 			return super(Convolution2DFunction, self).forward_gpu((x, self.W))
@@ -92,8 +93,8 @@ class Convolution2DFunction(convolution_2d.Convolution2DFunction):
 			gx, gW, gb = super(Convolution2DFunction, self).backward_cpu((x, self.W, b), grad_outputs)
 
 		xp = cuda.get_array_module(x)
-		gg = xp.sum(gW * self.normalizedV, axis=(1, 2, 3), keepdims=True).astype(g.dtype, copy=False)
-		gV = g * (gW - gg * self.normalizedV) / self.normV
+		gg = xp.sum(gW * self.V_normalized, axis=(1, 2, 3), keepdims=True).astype(g.dtype, copy=False)
+		gV = g * (gW - gg * self.V_normalized) / self.norm
 		gV = gV.astype(V.dtype, copy=False)
 
 		if b is None:
@@ -111,8 +112,8 @@ class Convolution2DFunction(convolution_2d.Convolution2DFunction):
 			gx, gW, gb = super(Convolution2DFunction, self).backward_gpu((x, self.W, b), grad_outputs)
 
 		xp = cuda.get_array_module(x)
-		gg = xp.sum(gW * self.normalizedV, axis=(1, 2, 3), keepdims=True).astype(g.dtype, copy=False)
-		gV = g * (gW - gg * self.normalizedV) / self.normV
+		gg = xp.sum(gW * self.V_normalized, axis=(1, 2, 3), keepdims=True).astype(g.dtype, copy=False)
+		gV = g * (gW - gg * self.V_normalized) / self.norm
 		gV = gV.astype(V.dtype, copy=False)
 
 		if b is None:
@@ -120,8 +121,15 @@ class Convolution2DFunction(convolution_2d.Convolution2DFunction):
 		else:
 			return gx, gV, gg, gb
 
-def convolution_2d(x, V, g, b=None, stride=1, pad=0, use_cudnn=True, cover_all=False):
-	func = Convolution2DFunction(stride, pad, use_cudnn, cover_all)
+def convolution_2d(x, V, g, b=None, stride=1, pad=0, cover_all=False, **kwargs):
+	argument.check_unexpected_kwargs(
+		kwargs, deterministic="deterministic argument is not "
+		"supported anymore. "
+		"Use chainer.using_config('cudnn_deterministic', value) "
+		"context where value is either `True` or `False`.")
+	argument.assert_kwargs_empty(kwargs)
+	
+	func = Convolution2DFunction(stride, pad, cover_all)
 	if b is None:
 		return func(x, V, g)
 	else:
@@ -129,37 +137,35 @@ def convolution_2d(x, V, g, b=None, stride=1, pad=0, use_cudnn=True, cover_all=F
 
 class Convolution2D(link.Link):
 
-	def __init__(self, in_channels, out_channels, ksize, 
-			stride=1, pad=0, wscale=1, bias=0, nobias=False, use_cudnn=True, initialV=None, dtype=np.float32):
+	def __init__(self, in_channels, out_channels, ksize=None, stride=1, pad=0, nobias=False, initialV=None, **kwargs):
 		super(Convolution2D, self).__init__()
+
+		argument.check_unexpected_kwargs(
+			kwargs, deterministic="deterministic argument is not "
+			"supported anymore. "
+			"Use chainer.using_config('cudnn_deterministic', value) "
+			"context where value is either `True` or `False`.")
+		argument.assert_kwargs_empty(kwargs)
+
+		if ksize is None:
+			out_channels, ksize, in_channels = in_channels, out_channels, None
+
 		self.ksize = ksize
 		self.stride = _pair(stride)
 		self.pad = _pair(pad)
-		self.use_cudnn = use_cudnn
 		self.out_channels = out_channels
-		self.in_channels = in_channels
-		self.dtype = dtype
+		self. nobias = nobias
 
-		self.initialV = initialV
-		self.wscale = wscale
-		self.nobias = nobias
+		with self.init_scope():
+			V_initializer = initializers._get_initializer(initialV)
+			self.V = variable.Parameter(V_initializer)
+			if in_channels is not None:
+				kh, kw = _pair(self.ksize)
+				V_shape = (self.out_channels, in_channels, kh, kw)
+				self.V.initialize(V_shape)
 
-		if in_channels is None:
-			self.add_uninitialized_param("V")
-		else:
-			self._initialize_weight(in_channels)
-
-		if nobias:
-			self.b = None
-		else:
-			self.add_uninitialized_param("b")
-
-		self.add_uninitialized_param("g")
-
-	def _initialize_weight(self, in_channels):
-		kh, kw = _pair(self.ksize)
-		W_shape = (self.out_channels, in_channels, kh, kw)
-		self.add_param("V", W_shape, initializer=initializers._get_initializer(self.initialV, math.sqrt(self.wscale)))
+			self.b = None if nobias else variable.Parameter(None)
+			self.g = variable.Parameter(None)		
 
 	def _initialize_params(self, t):
 		xp = cuda.get_array_module(t)
@@ -171,26 +177,28 @@ class Convolution2D(link.Link):
 
 		# print "g <- {}, b <- {}".format(g.reshape((-1,)), b.reshape((-1,)))
 
-		if self.nobias == False:
-			self.add_param("b", self.out_channels, initializer=initializers.Constant(b.reshape((-1,)), self.dtype))
-		self.add_param("g", (self.out_channels, 1, 1, 1), initializer=initializers.Constant(g, self.dtype))
+		with self.init_scope():
+			if self.nobias == False:
+				self.b = variable.Parameter(b.reshape((-1,)))
+			self.g = variable.Parameter(g.reshape((self.out_channels, 1, 1, 1)))
 
-	def _get_W_data(self):
+	@property
+	def W(self):
 		V = self.V.data
 		xp = cuda.get_array_module(V)
-		norm = get_norm(V)
+		norm = _norm(V)
 		V = V / norm
 		return self.g.data * V
 
 	def __call__(self, x):
-		if hasattr(self, "V") == False:
-			with cuda.get_device(self._device_id):
-				self._initialize_weight(x.shape[1])
-
-		if hasattr(self, "b") == False or hasattr(self, "g") == False:
+		if self.g.data is None:
+			if self.V.data is None:
+				kh, kw = _pair(self.ksize)
+				V_shape = (self.out_channels, x.shape[1], kh, kw)
+				self.V.initialize(V_shape)
 			xp = cuda.get_array_module(x.data)
-			t = convolution_2d(x, self.V, Variable(xp.full((self.out_channels, 1, 1, 1), 1.0).astype(x.dtype)), None, self.stride, self.pad, self.use_cudnn)	# compute output with g = 1 and without bias
+			t = convolution_2d(x, self.V, Variable(xp.full((self.out_channels, 1, 1, 1), 1.0).astype(x.dtype)), None, self.stride, self.pad)	# compute output with g = 1 and without bias
 			self._initialize_params(t.data)
 			return (t - self.mean_t) / self.std_t
 
-		return convolution_2d(x, self.V, self.g, self.b, self.stride, self.pad, self.use_cudnn)
+		return convolution_2d(x, self.V, self.g, self.b, self.stride, self.pad)

@@ -1,4 +1,4 @@
-import sys, os
+import sys, os, chainer
 import numpy as np
 from chainer import functions as F
 sys.path.append(os.path.split(os.getcwd())[0])
@@ -46,4 +46,5 @@ if __name__ == '__main__':
 		os.mkdir(args.plot_dir)
 	except:
 		pass
-	run_method_1()
+	with chainer.using_config("train", False):
+		run_method_1()

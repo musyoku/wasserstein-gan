@@ -97,6 +97,8 @@ class GAN():
 		lower = self.config_discriminator.clamp_lower
 		upper = self.config_discriminator.clamp_upper
 		for name, param in self.discriminator.namedparams():
+			if param.data is None:
+				continue
 			with cuda.get_device(param.data):
 				xp = cuda.get_array_module(param.data)
 				param.data = xp.clip(param.data, lower, upper)
@@ -105,6 +107,8 @@ class GAN():
 		lower = self.config_discriminator.clamp_lower
 		upper = self.config_discriminator.clamp_upper
 		for name, param in self.discriminator.namedparams():
+			if param.data is None:
+				continue
 			with cuda.get_device(param.data):
 				xp = cuda.get_array_module(param.data)
 				ratio_lower = xp.amin(param.data) / lower

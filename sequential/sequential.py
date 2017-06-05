@@ -145,26 +145,13 @@ class Sequential(object):
 		assert self.built == True
 		x = None
 		activations = []
-		if "test" not in kwargs:
-			kwargs["test"] = False
 		for link in self.links:
-			if isinstance(link, functions.dropout):
-				x = link(args[0] if x is None else x, train=not kwargs["test"])
-			elif isinstance(link, chainer.links.BatchNormalization):
-				x = link(args[0] if x is None else x, test=kwargs["test"])
-			elif isinstance(link, functions.gaussian_noise):
-				x = link(args[0] if x is None else x, test=kwargs["test"])
-			elif isinstance(link, Residual):
-				y = link(args[0] if x is None else x, test=kwargs["test"])
-				x = args[0] if x is None else x
-				x = y + x
+			if x is None:
+				x = link(*args)
 			else:
-				if x is None:
-					x = link(*args)
-				else:
-					x = link(x)
-					if isinstance(link, functions.ActivationFunction):
-						activations.append(x)
+				x = link(x)
+				if isinstance(link, functions.ActivationFunction):
+					activations.append(x)
 		if "return_activations" in kwargs and kwargs["return_activations"] == True:
 			return x, activations
 		return x

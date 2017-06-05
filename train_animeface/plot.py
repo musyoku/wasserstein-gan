@@ -1,4 +1,4 @@
-import sys, os, pylab
+import sys, os, pylab, chainer
 import numpy as np
 sys.path.append(os.path.split(os.getcwd())[0])
 from args import args
@@ -53,4 +53,5 @@ def plot_original_data(filename="data"):
 	tile_rgb_images(x_true.transpose(0, 2, 3, 1), dir=args.plot_dir, filename=filename)
 
 if __name__ == '__main__':
-	plot()
+	with chainer.using_config("train", False):
+		plot()

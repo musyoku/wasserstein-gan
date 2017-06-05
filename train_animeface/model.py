@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-import math
-import json, os, sys
+import json, os, sys, chainer, math
 from args import args
 from chainer import cuda
 sys.path.append(os.path.split(os.getcwd())[0])
-from gan import GAN, DiscriminatorParams, GeneratorParams
+from gan import GAN, DiscriminatorParams, GeneratorParams, to_object
 from sequential import Sequential
 from sequential.layers import Linear, BatchNormalization, Deconvolution2D, Convolution2D, PixelShuffler2D
 from sequential.functions import Activation, dropout, gaussian_noise, tanh, sigmoid, reshape
@@ -29,6 +27,7 @@ if os.path.isfile(discriminator_sequence_filename):
 	with open(discriminator_sequence_filename, "r") as f:
 		try:
 			params = json.load(f)
+			chainer.global_config.discriminator = to_object(params["config"])
 		except Exception as e:
 			raise Exception("could not load {}".format(discriminator_sequence_filename))
 else:
@@ -44,6 +43,8 @@ else:
 	config.momentum = 0.5
 	config.gradient_clipping = 10
 	config.weight_decay = 0
+
+	chainer.global_config.discriminator = config
 
 	discriminator = Sequential()
 	discriminator.add(Convolution2D(3, 32, ksize=4, stride=2, pad=1))
@@ -78,6 +79,7 @@ if os.path.isfile(generator_sequence_filename):
 	with open(generator_sequence_filename, "r") as f:
 		try:
 			params = json.load(f)
+			chainer.global_config.generator = to_object(params["config"])
 		except:
 			raise Exception("could not load {}".format(generator_sequence_filename))
 else:
@@ -93,41 +95,43 @@ else:
 	config.gradient_clipping = 10
 	config.weight_decay = 0
 
+	chainer.global_config.generator = config
+
 	generator = Sequential()
 	projection_size = 6
 	
 	# Deconvolution version
-	paddings = get_paddings_of_deconv_layers(image_width, num_layers=4, ksize=4, stride=2)
-	generator.add(Linear(config.ndim_input, 512 * projection_size ** 2))
-	generator.add(Activation(config.nonlinearity))
-	generator.add(BatchNormalization(512 * projection_size ** 2))
-	generator.add(reshape((-1, 512, projection_size, projection_size)))
-	generator.add(Deconvolution2D(512, 256, ksize=4, stride=2, pad=paddings.pop(0)))
-	generator.add(BatchNormalization(256))
-	generator.add(Activation(config.nonlinearity))
-	generator.add(Deconvolution2D(256, 128, ksize=4, stride=2, pad=paddings.pop(0)))
-	generator.add(BatchNormalization(128))
-	generator.add(Activation(config.nonlinearity))
-	generator.add(Deconvolution2D(128, 64, ksize=4, stride=2, pad=paddings.pop(0)))
-	generator.add(BatchNormalization(64))
-	generator.add(Activation(config.nonlinearity))
-	generator.add(Deconvolution2D(64, 3, ksize=4, stride=2, pad=paddings.pop(0)))
-
-	# PixelShuffler version
+	# paddings = get_paddings_of_deconv_layers(image_width, num_layers=4, ksize=4, stride=2)
 	# generator.add(Linear(config.ndim_input, 512 * projection_size ** 2))
 	# generator.add(Activation(config.nonlinearity))
 	# generator.add(BatchNormalization(512 * projection_size ** 2))
 	# generator.add(reshape((-1, 512, projection_size, projection_size)))
-	# generator.add(PixelShuffler2D(512, 256, r=2))
+	# generator.add(Deconvolution2D(512, 256, ksize=4, stride=2, pad=paddings.pop(0)))
 	# generator.add(BatchNormalization(256))
 	# generator.add(Activation(config.nonlinearity))
-	# generator.add(PixelShuffler2D(256, 128, r=2))
+	# generator.add(Deconvolution2D(256, 128, ksize=4, stride=2, pad=paddings.pop(0)))
 	# generator.add(BatchNormalization(128))
 	# generator.add(Activation(config.nonlinearity))
-	# generator.add(PixelShuffler2D(128, 64, r=2))
+	# generator.add(Deconvolution2D(128, 64, ksize=4, stride=2, pad=paddings.pop(0)))
 	# generator.add(BatchNormalization(64))
 	# generator.add(Activation(config.nonlinearity))
-	# generator.add(PixelShuffler2D(64, 3, r=2))
+	# generator.add(Deconvolution2D(64, 3, ksize=4, stride=2, pad=paddings.pop(0)))
+
+	# PixelShuffler version
+	generator.add(Linear(config.ndim_input, 512 * projection_size ** 2))
+	generator.add(Activation(config.nonlinearity))
+	generator.add(BatchNormalization(512 * projection_size ** 2))
+	generator.add(reshape((-1, 512, projection_size, projection_size)))
+	generator.add(PixelShuffler2D(512, 256, r=2))
+	generator.add(BatchNormalization(256))
+	generator.add(Activation(config.nonlinearity))
+	generator.add(PixelShuffler2D(256, 128, r=2))
+	generator.add(BatchNormalization(128))
+	generator.add(Activation(config.nonlinearity))
+	generator.add(PixelShuffler2D(128, 64, r=2))
+	generator.add(BatchNormalization(64))
+	generator.add(Activation(config.nonlinearity))
+	generator.add(PixelShuffler2D(64, 3, r=2))
 
 	if config.distribution_output == "sigmoid":
 		generator.add(sigmoid())
